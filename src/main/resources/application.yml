@@ -1,0 +1,44 @@
+server:
+  port: ${PORT:8081}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+spring:
+  application:
+    name: gs-export-docx
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 9MB
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+export:
+  max-entries: 256
+  max-entry-bytes: 2097152
+  max-expanded-bytes: 16777216
+  max-xml-depth: 64
+  max-structural-units: 100
+  max-concurrent: 2
+  max-text-lines: 10000
+  max-line-chars: 20000
+  greek-font: IFAO-Grec Unicode
+  latin-font: Times New Roman
+existdb:
+  enabled: ${EXISTDB_ENABLED:false}
+  rest-url: ${EXISTDB_REST_URL:http://localhost:8080/exist/rest}
+  username: ${EXISTDB_USERNAME:}
+  password: ${EXISTDB_PASSWORD:}
+  collection: ${EXISTDB_COLLECTION:/db/gs-export}
+  timeout: 2s
+  archive-budget: 5s

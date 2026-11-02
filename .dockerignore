@@ -1,0 +1,8 @@
+.git
+.env
+.idea
+target
+output
+node_modules
+*.log
+.DS_Store

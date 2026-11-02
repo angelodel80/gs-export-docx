@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GS · Esporta edizione DOCX</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">GreekSchools · Edizioni digitali</p>
+    <h1>Dall’XML all’edizione Word</h1>
+    <p>Carica il pacchetto completo del papiro. Spazi, rientri, sigma lunate e segni critici vengono conservati.</p>
+    <form id="export-form">
+      <label for="package">Pacchetto XML in formato ZIP</label>
+      <input id="package" name="file" type="file" accept=".zip,application/zip" required aria-describedby="file-help">
+      <small id="file-help">Massimo 8 MB con i limiti predefiniti. Il pacchetto deve includere la gerarchia e le sei unità testuali di ciascun frammento.</small>
+      <label class="checkbox"><input id="archive" type="checkbox"> Archivia una copia su eXist-db, se configurato</label>
+      <small>La conversione avviene anche senza database. Un errore di archiviazione viene segnalato e non impedisce il download.</small>
+      <div class="actions">
+        <button id="submit" type="submit">Genera e scarica DOCX</button>
+        <button id="cancel" type="button" class="secondary" hidden>Annulla attesa</button>
+      </div>
+    </form>
+    <div id="status" class="status" role="status" aria-live="polite" aria-atomic="true">Seleziona un pacchetto per iniziare.</div>
+    <p class="note">Per riprodurre i segni speciali, apri il DOCX con il font IFAO-Grec Unicode disponibile. L’annullamento dell’attesa non interrompe necessariamente un’elaborazione già iniziata sul server.</p>
+  </main>
+</body>
+</html>
