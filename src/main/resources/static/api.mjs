@@ -1,7 +1,7 @@
 export const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 export class ApiModel {
-  constructor(fetcher = globalThis.fetch, timeoutMs = 180_000) {
+  constructor(fetcher = (...args) => globalThis.fetch(...args), timeoutMs = 180_000) {
     this.fetcher = fetcher;
     this.timeoutMs = timeoutMs;
   }

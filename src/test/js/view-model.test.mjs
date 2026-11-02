@@ -5,6 +5,22 @@ import { ApiModel, DOCX_TYPE } from '../../main/resources/static/api.mjs';
 
 const file = () => new File(['data'], 'package.zip', { type: 'application/zip' });
 
+test('default browser fetch keeps the global receiver when called through ApiModel', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = function (url) {
+    // Window.fetch rejects an ApiModel receiver; Node's native fetch does not.
+    if (this !== globalThis) throw new TypeError('Illegal invocation');
+    assert.equal(url, '/api/papyrus/upload');
+    return Promise.resolve(new Response('docx-bytes', { headers: { 'Content-Type': DOCX_TYPE } }));
+  };
+  try {
+    const result = await new ApiModel().upload(file(), false);
+    assert.equal(await result.blob.text(), 'docx-bytes');
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
 test('DB archival failure still downloads the document and displays a warning', async () => {
   let downloaded = false;
   const vm = new PapyrusViewModel({ upload: async () => ({ archiveStatus: 'UNAVAILABLE' }) }, () => { downloaded = true; });
