@@ -11,9 +11,14 @@ services:
       EXISTDB_COLLECTION: ${EXISTDB_COLLECTION:-/db/gs-export}
       EXISTDB_USERNAME: ${EXISTDB_USERNAME:-}
       EXISTDB_PASSWORD: ${EXISTDB_PASSWORD:-}
+      EXISTDB_PUBLIC_REST_URL: ${EXISTDB_PUBLIC_REST_URL:-}
+      EXPORT_JOBS_DIRECTORY: /data/jobs
+      EXPORT_UPLOAD_DIRECTORY: /data/uploads
+    volumes:
+      - export-data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    mem_limit: 768m
+    mem_limit: 1536m
     cpus: 2
     pids_limit: 160
     read_only: true
@@ -24,3 +29,5 @@ services:
       - no-new-privileges:true
     stop_grace_period: 25s
     restart: unless-stopped
+volumes:
+  export-data:

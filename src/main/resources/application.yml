@@ -5,14 +5,21 @@ server:
     include-message: never
     include-stacktrace: never
 spring:
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-store: true
   application:
     name: gs-export-docx
   lifecycle:
     timeout-per-shutdown-phase: 20s
   servlet:
     multipart:
-      max-file-size: 8MB
-      max-request-size: 9MB
+      max-file-size: ${EXPORT_UPLOAD_LIMIT:512MB}
+      max-request-size: ${EXPORT_REQUEST_LIMIT:513MB}
+      file-size-threshold: 0
+      location: ${EXPORT_UPLOAD_DIRECTORY:${java.io.tmpdir}}
 management:
   endpoints:
     web:
@@ -24,6 +31,21 @@ management:
         enabled: true
       show-details: never
 export:
+  jobs:
+    directory: ${EXPORT_JOBS_DIRECTORY:./data/export-jobs}
+    workers: 1
+    queue-capacity: 4
+    max-stored-jobs: 16
+    max-upload-bytes: 536870912
+    max-output-bytes: 134217728
+    max-disk-bytes: 2147483648
+    retention: 2h
+    max-entries: 4096
+    max-entry-bytes: 8388608
+    max-expanded-bytes: 268435456
+    max-fragments: 512
+    max-text-lines: 50000
+    max-text-chars: 16777216
   max-entries: 256
   max-entry-bytes: 2097152
   max-expanded-bytes: 16777216
@@ -35,6 +57,9 @@ export:
   greek-font: IFAO-Grec Unicode
   latin-font: Times New Roman
 existdb:
+  documents:
+    public-rest-url: ${EXISTDB_PUBLIC_REST_URL:}
+    timeout: 2m
   enabled: ${EXISTDB_ENABLED:false}
   rest-url: ${EXISTDB_REST_URL:http://localhost:8080/exist/rest}
   username: ${EXISTDB_USERNAME:}

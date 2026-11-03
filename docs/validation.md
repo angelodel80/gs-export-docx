@@ -15,7 +15,7 @@
 - archiviatore su server REST di prova: byte originali, batch UUID, cleanup, query fallita con HTTP 200 e timeout del corpo;
 - frontend e health check.
 
-`npm test` esegue sei test: download con archivio indisponibile, validazione file, duplicati/cancellazione, errori API, blob/nome file e timeout.
+`npm test` esegue i test del client compatibile e del flusso asincrono: contesto di fetch, stati indipendenti, polling, ripresa della sessione, duplicati, errori, timeout e controlli della view disponibili durante l'elaborazione.
 
 `bash scripts/smoke-container.sh <immagine>` verifica l'immagine finale non root, filesystem in sola lettura, limiti di risorse, interfaccia, readiness e conversione reale con DB non disponibile. Il container di prova viene arrestato al termine.
 
@@ -37,3 +37,13 @@ I risultati effettivamente eseguiti sono riportati nella consegna e negli artefa
 - Container: utente `10001:10001`, filesystem in sola lettura, 768 MB; health probe eseguita, interfaccia servita e conversione del campione riuscita con eXist intenzionalmente indisponibile.
 - Risposta reale: HTTP 200, MIME DOCX, `X-Archive-Status: UNAVAILABLE`, `X-Fragment-Count: 2`; quattro tabelle e dati PHerc. 1025, senza dati dimostrativi.
 - Parser YAML e controllo sintattico degli script shell superati. GitHub Actions e push remoti non eseguiti.
+
+## Feature asincrona — 3 novembre 2026
+
+- JDK 17, Maven Wrapper: **34 test Java, zero fallimenti/errori, zero saltati**.
+- Frontend: **14 test JavaScript passati**, inclusa l'esecuzione del modulo della view con DOM di test e verifica dei controlli non disabilitati.
+- Test del pacchetto reale in modalità job e di uno ZIP superiore a 8 MiB: conversione riuscita; il vecchio endpoint rifiuta invece il pacchetto oltre il suo limite.
+- Verificati presa in carico, trasformazione, disponibilità del risultato, saturazione della coda, quota disco, output limitato, eliminazione di file parziali, riavvio e scadenza.
+- Trasporto eXist binario su server REST di prova: MIME e byte DOCX, controllo HEAD, URL pubblico, fallback locale e cleanup degli errori.
+- Docker: build e smoke test eseguiti anche per 202/polling/download con eXist intenzionalmente irraggiungibile, utente non root e filesystem di sistema in sola lettura.
+- Non è stato eseguito un benchmark al limite di 512 MiB, né un collaudo sulla specifica istanza eXist dell'utente. Il confronto grafico in un browser reale e in Word resta distinto dai test di comportamento e OOXML.

@@ -7,4 +7,7 @@ import java.util.List;
 public interface EditionMappingStrategy {
     String name();
     Edition map(List<XmlUnit> units, TextConversionStrategy conversion);
+    default Edition map(List<XmlUnit> units, TextConversionStrategy conversion, int maxFragments) {
+        return map(units, conversion);
+    }
 }

@@ -13,12 +13,12 @@ else
 fi
 cleanup() {
   docker logs "$name" > "$output_dir/container.log" 2>&1 || true
-  docker rm -f "$name" > /dev/null 2>&1 || true
+  docker rm -fv "$name" > /dev/null 2>&1 || true
   if [ "$remove_output" = true ]; then rm -rf -- "$output_dir"; fi
 }
 trap cleanup EXIT
 docker run -d --name "$name" -p 127.0.0.1::8081 \
-  --memory=768m --pids-limit=160 --read-only --tmpfs /tmp:size=96m,mode=1777 \
+  --memory=1536m --pids-limit=160 --read-only --tmpfs /tmp:size=96m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges:true \
   -e EXISTDB_ENABLED=true -e EXISTDB_REST_URL=http://127.0.0.1:1/exist/rest \
   -e EXISTDB_USERNAME=smoke "$image" > /dev/null
@@ -47,3 +47,4 @@ text = ''.join(root.itertext())
 assert '1025' in text and 'ϲ' in text and '\uE5CE' in text and 'P.Oxy.' not in text
 print('Container smoke test passed: real PHerc. 1025 DOCX, four tables, database unavailable.')
 PY
+python3 "$project_root/scripts/smoke-async.py" "$base" "$project_root" "$output_dir"

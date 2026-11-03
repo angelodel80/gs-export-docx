@@ -21,6 +21,11 @@ public class GsUnitMappingStrategy implements EditionMappingStrategy {
     public String name() { return "GS_UNIT"; }
 
     public Edition map(List<XmlUnit> units, TextConversionStrategy conversion) {
+        return map(units, conversion, limits.maxStructuralUnits());
+    }
+
+    @Override
+    public Edition map(List<XmlUnit> units, TextConversionStrategy conversion, int maxFragments) {
         Map<String, XmlUnit> byId = new LinkedHashMap<>();
         for (var unit : units) {
             if (byId.putIfAbsent(unit.id(), unit) != null) throw ExportException.invalid("ID duplicato: " + unit.id());
@@ -51,14 +56,15 @@ public class GsUnitMappingStrategy implements EditionMappingStrategy {
         }
         List<Edition.Fragment> fragments = new ArrayList<>();
         Set<String> visited = new HashSet<>();
-        visit(root, byId, visited, fragments, conversion);
+        visit(root, byId, visited, fragments, conversion, maxFragments, 0);
         if (visited.size() != units.size()) throw ExportException.invalid("Unità non raggiungibili dalla radice o ciclo nel pacchetto.");
         if (fragments.isEmpty()) throw ExportException.invalid("Nessun frammento esportabile.");
         return new Edition(root.id(), root.title(), root.creator(), fragments);
     }
 
     private void visit(XmlUnit unit, Map<String, XmlUnit> byId, Set<String> visited,
-            List<Edition.Fragment> fragments, TextConversionStrategy conversion) {
+            List<Edition.Fragment> fragments, TextConversionStrategy conversion, int maxFragments, int depth) {
+        if (depth > 64) throw ExportException.invalid("Gerarchia strutturale troppo profonda.");
         if (!visited.add(unit.id())) throw ExportException.invalid("Ciclo nella gerarchia: " + unit.id());
         if (unit.children().isEmpty()) throw ExportException.invalid("Unità strutturale senza figli: " + unit.id());
         boolean hasText = unit.children().stream().map(byId::get).anyMatch(u -> u.language() != null);
@@ -77,10 +83,10 @@ public class GsUnitMappingStrategy implements EditionMappingStrategy {
                 missing.removeAll(texts.keySet());
                 throw ExportException.invalid("Unità mancanti in " + unit.id() + ": " + String.join(", ", missing));
             }
-            if (fragments.size() >= limits.maxStructuralUnits()) throw ExportException.tooLarge("Troppi frammenti da impaginare.");
+            if (fragments.size() >= maxFragments) throw ExportException.tooLarge("Troppi frammenti da impaginare.");
             fragments.add(new Edition.Fragment(unit.id(), unit.title(), texts));
         } else {
-            for (String id : unit.children()) visit(byId.get(id), byId, visited, fragments, conversion);
+            for (String id : unit.children()) visit(byId.get(id), byId, visited, fragments, conversion, maxFragments, depth + 1);
         }
     }
 }

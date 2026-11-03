@@ -19,6 +19,7 @@ public class PapyrusController {
             @RequestParam(defaultValue = "PRESERVE") String granularity,
             @RequestParam(defaultValue = "DOCX") String format,
             @RequestParam(defaultValue = "false") boolean archive) throws IOException {
+        if (file.getSize() > 8L * 1024 * 1024) throw ExportException.tooLarge("Usa l'esportazione asincrona per ZIP oltre 8 MiB.");
         try (var input = file.getInputStream()) {
             var result = service.convert(input, mapping, granularity, format, archive);
             return ResponseEntity.ok()

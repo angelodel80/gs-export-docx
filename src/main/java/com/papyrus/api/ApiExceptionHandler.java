@@ -23,7 +23,7 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ResponseEntity<ProblemDetail> size(HttpServletRequest request) {
-        return problem(HttpStatus.PAYLOAD_TOO_LARGE, "UPLOAD_LIMIT", "Archivio troppo grande (massimo 8 MB con la configurazione predefinita).", request);
+        return problem(HttpStatus.PAYLOAD_TOO_LARGE, "UPLOAD_LIMIT", "Archivio oltre il limite multipart configurato.", request);
     }
 
     @ExceptionHandler({MultipartException.class, MissingServletRequestPartException.class, MethodArgumentTypeMismatchException.class})

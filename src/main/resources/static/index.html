@@ -15,16 +15,20 @@
     <form id="export-form">
       <label for="package">Pacchetto XML in formato ZIP</label>
       <input id="package" name="file" type="file" accept=".zip,application/zip" required aria-describedby="file-help">
-      <small id="file-help">Massimo 8 MB con i limiti predefiniti. Il pacchetto deve includere la gerarchia e le sei unità testuali di ciascun frammento.</small>
-      <label class="checkbox"><input id="archive" type="checkbox"> Archivia una copia su eXist-db, se configurato</label>
-      <small>La conversione avviene anche senza database. Un errore di archiviazione viene segnalato e non impedisce il download.</small>
+      <small id="file-help">Caricamento della configurazione…</small>
+      <label for="delivery">Consegna della risorsa pronta</label>
+      <select id="delivery">
+        <option value="DOWNLOAD">Download del documento DOCX</option>
+        <option value="EXIST_URL" disabled>URL del documento DOCX su eXist-db</option>
+      </select>
+      <small>Il file viene elaborato in background. Se eXist non risponde, il DOCX rimane scaricabile localmente.</small>
       <div class="actions">
-        <button id="submit" type="submit">Genera e scarica DOCX</button>
-        <button id="cancel" type="button" class="secondary" hidden>Annulla attesa</button>
+        <button id="submit" type="submit"><span id="submit-spinner" class="spinner" aria-hidden="true" hidden></span> Avvia esportazione</button>
       </div>
     </form>
     <div id="status" class="status" role="status" aria-live="polite" aria-atomic="true">Seleziona un pacchetto per iniziare.</div>
-    <p class="note">Per riprodurre i segni speciali, apri il DOCX con il font IFAO-Grec Unicode disponibile. L’annullamento dell’attesa non interrompe necessariamente un’elaborazione già iniziata sul server.</p>
+    <section id="jobs" aria-label="Esportazioni"></section>
+    <p class="note">Per riprodurre i segni speciali, apri il DOCX con il font IFAO-Grec Unicode disponibile. I risultati locali scadono dopo il periodo indicato dal servizio.</p>
   </main>
 </body>
 </html>

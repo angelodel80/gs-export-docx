@@ -2,6 +2,8 @@
 
 Servizio Spring Boot per trasformare pacchetti XML GreekSchools in DOCX, con archiviazione opzionale su un eXist-db esistente.
 
+La versione **0.3** introduce esportazioni asincrone per pacchetti grandi: **presa in carico → trasformazione → risorsa pronta**. L'interfaccia mostra un'icona rotante senza bloccare gli altri controlli. È possibile inviare altri pacchetti e scaricare i risultati oppure ricevere il link del DOCX binario salvato su eXist. Vedere [API asincrona, limiti e storage](docs/async-exports.md).
+
 **La conversione avviene localmente anche quando eXist non è configurato o raggiungibile.** Spazi, rientri, righe vuote, sigma lunate, parentesi, diacritici e caratteri privati Unicode vengono conservati. Nessun errore viene sostituito da un'edizione dimostrativa.
 
 ## Avvio dai sorgenti
@@ -25,7 +27,7 @@ npm test
 docker compose up --build
 ```
 
-Compose avvia il solo esportatore su `127.0.0.1:8081`, con utente non root, filesystem in sola lettura, `/tmp` temporaneo e memoria limitata a 768 MB. Non crea un secondo database.
+Compose avvia il solo esportatore su `127.0.0.1:8081`, con utente non root, filesystem in sola lettura, `/tmp` temporaneo e memoria limitata a 1536 MB. Il volume `export-data` conserva upload di lavoro, documenti e stati sotto `/data`. Non crea un secondo database. `docker compose down` conserva il volume; `down -v` elimina anche i risultati.
 
 Per costruire e provare l'immagine autonomamente:
 
@@ -134,9 +136,9 @@ Registrazioni duplicate falliscono all'avvio. Le nuove trasformazioni devono ave
 
 ## Limiti e operatività
 
-Default configurabili in `application.yml`:
+Default del percorso **sincrono** compatibile, configurabili in `application.yml`:
 
-- upload 8 MB; richiesta multipart 9 MB;
+- ZIP sincroni fino a 8 MiB; l'upload multipart globale arriva a 512 MiB per consentire i job asincroni;
 - 256 entry, 2 MiB ciascuna, 16 MiB decompressi complessivi;
 - profondità XML 64; DTD, entità esterne e XInclude disabilitati;
 - 100 frammenti, 10.000 righe testuali, 20.000 unità UTF-16 per riga;
@@ -162,7 +164,7 @@ git add README.md pom.xml mvnw mvnw.cmd .mvn .gitignore .dockerignore .env.examp
   Dockerfile compose.yaml package.json src scripts docs .github
 git diff --cached --stat
 git commit -m "Implement conservative XML to DOCX export with optional eXist archive"
-git push origin HEAD:main
+git push -u origin HEAD
 ```
 
 Seguire la propria procedura di branch/PR se richiesta. Il repository è già inizializzato: non ricreare origin. I campioni editoriali inclusi per regressione non entrano nell'immagine runtime.

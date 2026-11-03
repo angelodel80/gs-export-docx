@@ -3,6 +3,7 @@
 .idea
 target
 output
+data
 node_modules
 *.log
 .DS_Store

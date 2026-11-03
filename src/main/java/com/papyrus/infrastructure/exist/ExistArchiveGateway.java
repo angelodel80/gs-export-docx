@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.xml.XMLConstants;
@@ -85,24 +86,56 @@ public class ExistArchiveGateway implements ArchiveGateway {
 
     private byte[] request(String method, String path, byte[] payload, Duration timeout)
             throws IOException, InterruptedException {
+        return request(method, path, payload == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofByteArray(payload), "application/xml", timeout);
+    }
+
+    private byte[] request(String method, String path, HttpRequest.BodyPublisher payload, String contentType, Duration timeout)
+            throws IOException, InterruptedException {
+        return exchange(method, path, payload, contentType, timeout).body();
+    }
+
+    private HttpResponse<byte[]> exchange(String method, String path, HttpRequest.BodyPublisher payload, String contentType, Duration timeout)
+            throws IOException, InterruptedException {
         String base = config.restUrl().toString().replaceAll("/+$", "");
         var request = HttpRequest.newBuilder(URI.create(base + path)).timeout(timeout)
-                .header("Content-Type", "application/xml")
+                .header("Content-Type", contentType)
                 .header("Accept", "application/xml");
         String auth = config.username() + ":" + Objects.requireNonNullElse(config.password(), "");
         request.header("Authorization", "Basic " + Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8)));
-        request.method(method, payload == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofByteArray(payload));
+        request.method(method, payload);
         var future = client.sendAsync(request.build(), info -> new LimitedBodySubscriber(65536));
         try {
             var response = future.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
             if (response.statusCode() < 200 || response.statusCode() >= 300) throw new IOException("Archive HTTP error");
-            return response.body();
+            return response;
         } catch (ExecutionException | TimeoutException ex) {
             throw new IOException("Archive request failed or timed out", ex);
         } finally {
             if (!future.isDone()) future.cancel(true);
         }
     }
+
+    void createDocumentBatch(String name) throws Exception {
+        String query = "import module namespace xmldb='http://exist-db.org/xquery/xmldb'; "
+                + "if (xmldb:collection-available('" + config.collection() + "')) then "
+                + "let $created := xmldb:create-collection('" + config.collection() + "','" + name + "') "
+                + "return if (exists($created)) then <archive-created>" + name + "</archive-created> else () "
+                + "else error(xs:QName('archive-missing'), 'Archive collection is not provisioned')";
+        verifyCreated(request("POST", config.collection(), queryPayload(query), config.timeout()), name);
+    }
+
+    void putDocument(String path, Path file, Duration timeout) throws Exception {
+        request("PUT", path, HttpRequest.BodyPublishers.ofFile(file),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document", timeout);
+        var check = exchange("HEAD", path, HttpRequest.BodyPublishers.noBody(), "application/xml", timeout);
+        String type = check.headers().firstValue("Content-Type").orElse("").split(";")[0];
+        if (!type.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+            throw new IOException("Stored resource is not a DOCX");
+        var length = check.headers().firstValueAsLong("Content-Length");
+        if (length.isPresent() && length.getAsLong() != java.nio.file.Files.size(file)) throw new IOException("Stored document length mismatch");
+    }
+
+    void removeDocumentBatch(String path) throws Exception { request("DELETE", path, (byte[]) null, Duration.ofMillis(250)); }
 
     private byte[] queryPayload(String query) {
         return ("<query xmlns=\"http://exist.sourceforge.net/NS/exist\" max=\"1\"><text><![CDATA["

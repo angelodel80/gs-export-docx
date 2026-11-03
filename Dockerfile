@@ -18,10 +18,13 @@ LABEL org.opencontainers.image.source="https://github.com/angelodel80/gs-export-
       org.opencontainers.image.title="gs-export-docx" \
       org.opencontainers.image.licenses="MIT"
 WORKDIR /app
+RUN mkdir -p /data/jobs /data/uploads && chown -R 10001:10001 /data
 COPY --from=build --chown=10001:10001 /build/target/gs-export-docx.jar /app/app.jar
 COPY --from=build --chown=10001:10001 /build/target/classes/com/papyrus/Healthcheck.class /app/health/com/papyrus/Healthcheck.class
 USER 10001:10001
 ENV PORT=8081
+ENV EXPORT_JOBS_DIRECTORY=/data/jobs EXPORT_UPLOAD_DIRECTORY=/data/uploads
+VOLUME ["/data"]
 EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD ["java", "-Xmx32m", "-cp", "/app/health", "com.papyrus.Healthcheck"]

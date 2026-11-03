@@ -9,6 +9,8 @@ import com.papyrus.xml.XmlPackageReader;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.Semaphore;
+import java.nio.file.*;
+import com.papyrus.config.AsyncExportProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,33 @@ public class DocumentProcessorService {
     }
 
     public record Result(byte[] bytes, String filename, String mediaType, int fragments, ArchiveGateway.Status archiveStatus) {}
+    public record FileResult(String filename, String mediaType, int fragments) {}
+
+    /** Async path: bounded parsing without retaining source bytes, direct output to disk. */
+    public FileResult convertToFile(InputStream input, Path output, ExportProperties limits, AsyncExportProperties jobs)
+            throws IOException, InterruptedException {
+        var mapper = select(mappings, "GS_UNIT");
+        var converter = select(conversions, "PRESERVE");
+        var renderer = select(renderers, "DOCX");
+        permits.acquire();
+        try {
+            var units = reader.read(input, jobs.inputLimits(limits), false, jobs.maxTextChars());
+            var edition = mapper.map(units, converter, jobs.maxFragments());
+            try (var file = Files.newOutputStream(output, StandardOpenOption.CREATE_NEW);
+                 var bounded = new FilterOutputStream(file) {
+                     private long written;
+                     @Override public void write(int value) throws IOException { reserve(1); out.write(value); }
+                     @Override public void write(byte[] bytes, int offset, int length) throws IOException { reserve(length); out.write(bytes, offset, length); }
+                     private void reserve(int length) {
+                         if (length > jobs.maxOutputBytes() - written) throw ExportException.tooLarge("DOCX oltre il limite configurato.");
+                         written += length;
+                     }
+                 }) {
+                renderer.render(edition, bounded);
+            }
+            return new FileResult(edition.id() + "." + renderer.extension(), renderer.mediaType(), edition.fragments().size());
+        } finally { permits.release(); }
+    }
 
     public Result convert(InputStream input, String mapping, String conversion, String format, boolean archiveRequested)
             throws IOException {

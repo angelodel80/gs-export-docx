@@ -21,11 +21,16 @@ public class XmlPackageReader {
     public XmlPackageReader(ExportProperties limits) { this.limits = limits; }
 
     public List<XmlUnit> read(InputStream input) {
+        return read(input, limits, true, Long.MAX_VALUE);
+    }
+
+    public List<XmlUnit> read(InputStream input, ExportProperties limits, boolean retainOriginal, long maxTextChars) {
         List<XmlUnit> units = new ArrayList<>();
         Set<String> names = new HashSet<>();
         long total = 0;
         int count = 0;
         long textLines = 0;
+        long textChars = 0;
         try (var in = new PushbackInputStream(input, 4)) {
             byte[] magic = in.readNBytes(4);
             if (magic.length != 4 || magic[0] != 'P' || magic[1] != 'K'
@@ -59,9 +64,11 @@ public class XmlPackageReader {
                     if (entry.isDirectory()) {
                         if (size != 0) throw ExportException.invalid("Entry directory contenente dati.");
                     } else {
-                        XmlUnit unit = parse(out.toByteArray());
+                        XmlUnit unit = parse(out.toByteArray(), limits, retainOriginal);
                         if (unit.content() != null) {
-                            textLines += checkLines(unit.content());
+                            textChars += unit.content().length();
+                            if (textChars > maxTextChars) throw ExportException.tooLarge("Troppo contenuto testuale nel pacchetto.");
+                            textLines += checkLines(unit.content(), limits);
                             if (textLines > limits.maxTextLines()) throw ExportException.tooLarge("Troppe righe testuali nel pacchetto.");
                         }
                         units.add(unit);
@@ -79,7 +86,7 @@ public class XmlPackageReader {
         return List.copyOf(units);
     }
 
-    private long checkLines(String content) {
+    private long checkLines(String content, ExportProperties limits) {
         long lines = 1;
         int width = 0;
         for (int i = 0; i < content.length(); i++) {
@@ -97,7 +104,7 @@ public class XmlPackageReader {
         }
     }
 
-    private XmlUnit parse(byte[] bytes) {
+    private XmlUnit parse(byte[] bytes, ExportProperties limits, boolean retainOriginal) {
         try {
             var factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
@@ -132,7 +139,7 @@ public class XmlPackageReader {
             String language = dsl == null ? null : metadata(dsl, "language", true);
             String content = dsl == null ? null : textContent(child(dsl, "content", true));
             return new XmlUnit(id, metadata(root, "title", false), metadata(root, "creator", false),
-                    metadata(root, "target", false), children, language, content, bytes);
+                    metadata(root, "target", false), children, language, content, retainOriginal ? bytes : new byte[0]);
         } catch (ExportException ex) {
             throw ex;
         } catch (SAXException | IOException ex) {
@@ -152,6 +159,7 @@ public class XmlPackageReader {
     private String metadata(Element parent, String tag, boolean required) {
         Element el = child(parent, tag, required);
         String value = el == null ? "" : el.getTextContent().strip();
+        if (value.length() > 4096) throw ExportException.tooLarge("Metadato XML troppo lungo: " + tag);
         if (required && value.isEmpty()) throw ExportException.invalid("Campo XML obbligatorio vuoto: " + tag);
         return value;
     }

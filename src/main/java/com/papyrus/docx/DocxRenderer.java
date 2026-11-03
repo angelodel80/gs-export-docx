@@ -20,7 +20,15 @@ public class DocxRenderer implements DocumentRenderer {
     public String extension() { return "docx"; }
 
     public byte[] render(Edition edition) throws IOException {
-        try (var document = new XWPFDocument(); var out = new ByteArrayOutputStream()) {
+        try (var out = new ByteArrayOutputStream()) {
+            render(edition, out);
+            return out.toByteArray();
+        }
+    }
+
+    @Override
+    public void render(Edition edition, OutputStream out) throws IOException {
+        try (var document = new XWPFDocument()) {
             styles.initialize(document);
             document.getProperties().getCoreProperties().setTitle(edition.title());
             document.getProperties().getCoreProperties().setCreator(edition.creator());
@@ -35,7 +43,6 @@ public class DocxRenderer implements DocumentRenderer {
                 }
             }
             document.write(out);
-            return out.toByteArray();
         }
     }
 }
